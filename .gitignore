@@ -1,0 +1,3 @@
+.vscode*
+pose_export/model*
+pose_export/poses.json
