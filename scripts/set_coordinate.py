@@ -1,11 +1,26 @@
-"""скрипт устанавливающий координаты рига"""
+"""Скрипт устанавливающий координаты рига"""
 
 import bpy
 import json
 import mathutils
 
-def set_bone_2(rig, bone, location):
-    # Получаем матрицу преобразования кости относительно центра объекта
+def set_bone_loc(rig, bone, location):
+    """Set the bone location to the given location.
+
+    Args:
+        rig (bpy.types.Object): The rig object.
+        bone (bpy.types.Bone): The bone to set the location.
+        location (mathutils.Vector): The location to set.
+    """
+
+    # Получаем матрицу преобразования конечной точкой относительно центра компонент"""
+    base_bone = rig.pose.bones["neck"]
+
+    base_loc, _, _ = (rig.matrix_world @ base_bone.matrix).decompose()
+
+    location += base_loc
+
+    # Получаем матрицу преобразования кости относительно центра координат
     matrix = rig.matrix_world @ bone.matrix
 
     bone_loc, bone_rot, bone_sca = matrix.decompose()
@@ -18,34 +33,29 @@ def set_bone_2(rig, bone, location):
     bpy.context.view_layer.update()
     bone.keyframe_insert(data_path="location", frame=bpy.context.scene.frame_current)
 
-def set_bone(rig, bone, location):
+
+def set_bone_rot(rig, bone, parent_bone):
+    """Set the bone rotation to the given rotation.
+
+    Args:
+        rig (bpy.types.Object): The rig object.
+        bone (bpy.types.Bone): The bone to set the rotation.
+        parent_bone (bpy.types.Bone): The parent bone of the bone to set the rotation.
+    """
     # Получаем матрицу преобразования кости относительно центра объекта
     matrix = rig.matrix_world @ bone.matrix
+    parent_matrix = rig.matrix_world @ parent_bone.matrix
 
-    re_matrix = rig.matrix_world.inverted() @ matrix
+    bone_loc, bone_rot, bone_sca = matrix.decompose()
+    paremt_bone_loc, parent_bone_rot, parent_bone_sca = parent_matrix.decompose()
 
-    bone_loc, bone_rot, bone_sca = bone.matrix.decompose()
-    rig_loc, rig_rot, rig_sca = rig.matrix_world.decompose()
-    bone_w_loc, bone_w_rot, bone_w_sca = matrix.decompose()
+    mat_out = mathutils.Matrix.LocRotScale(bone_loc, parent_bone_rot, bone_sca)
 
-    # Считаем новый вектор, относительно которого нужно задать координаты
-    origin = rig.matrix_world @ bone.head
-
-    # Считаем поворот кости в глобальной системе координат
-    rotation = rig.matrix_world.to_quaternion() @ bone.matrix.to_quaternion()
-
-    # Складываем новые координаты с координатами центра кости
-    new_matrix_translation = location - origin
-
-    # Изменяем матрицу преобразования кости, чтобы она соответствовала новым координатам
-    matrix = Matrix.Translation(new_matrix_translation) @ rotation.to_matrix().to_4x4()
-
-    # Применяем изменения к кости
-    bone.matrix_basis = rig.matrix_world.inverted() @ matrix
+    bone.matrix = rig.matrix_world.inverted() @ mat_out
 
     # Обновляем костную систему
     bpy.context.view_layer.update()
-    bone.keyframe_insert(data_path="location", frame=bpy.context.scene.frame_current)
+    bone.keyframe_insert(data_path="rotation_quaternion", frame=bpy.context.scene.frame_current)
 
 def get_hips_loc(l_hip, r_hip):
     l_hip_x, l_hip_y, l_hip_z = (l_hip["x"] / 100, l_hip["y"] / 100, l_hip["z"] / 100)
@@ -96,26 +106,31 @@ def main():
         #hips_loc = get_hips_loc(pose["pose"]["l_hip"], pose["pose"]["r_hip"])
 
         #set_bone(rig, rig.pose.bones["torso"], hips_loc)
-        #set_bone_absolute_location(rig, "torso", hips_loc)
 
         for key, val in base_rig_bones.items():
             if val == None:
                 continue
             bone = rig.pose.bones[val]
 
-            new_location = mathutils.Vector((pose["pose"][key]["x"] / 100, pose["pose"][key]["y"] / 100, pose["pose"][key]["z"] / 100))
+            x = (pose["pose"][key]["x"] - pose["pose"]["neck"]["x"]) / 100
+            y = (pose["pose"][key]["y"] - pose["pose"]["neck"]["y"]) / 100
+            z = (pose["pose"][key]["z"] - pose["pose"]["neck"]["z"]) / 100
 
-            set_bone_2(rig, bone, new_location)
-            #set_bone_location(bone, new_location)
+            new_location = mathutils.Vector((x, y, z))
 
-        rig.keyframe_insert(data_path="location", frame=bpy.context.scene.frame_current)
+            set_bone_loc(rig, bone, new_location)
+
+        set_bone_rot(rig, rig.pose.bones["hand_ik.R"], rig.pose.bones["MCH-forearm_ik.R"])
+        set_bone_rot(rig, rig.pose.bones["hand_ik.L"], rig.pose.bones["MCH-forearm_ik.L"])
+
+    rig.keyframe_insert(data_path="location", frame=bpy.context.scene.frame_current)
 
 
 def fake_main():
     rig = bpy.data.objects["rig"]
     bone = rig.pose.bones["neck"]
     new_location = Vector((0.006395, 0.377164, 1.02685))
-    set_bone(rig, bone, new_location)
+    set_bone_loc(rig, bone, new_location)
 
 main()
 #fake_main()
