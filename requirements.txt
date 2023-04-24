@@ -59,7 +59,7 @@ networkx==2.8.8
 notebook @ file:///home/conda/feedstock_root/build_artifacts/notebook_1680870634737/work
 notebook_shim @ file:///home/conda/feedstock_root/build_artifacts/notebook-shim_1667478401171/work
 numpy @ file:///D:/bld/numpy_1675642778044/work
-onnx==1.12.0
+onnx==1.13.0
 opencv-python==4.7.0.72
 openvino==2022.3.0
 openvino-dev==2022.3.0
