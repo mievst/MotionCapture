@@ -109,7 +109,7 @@ texttable==1.6.7
 tinycss2 @ file:///home/conda/feedstock_root/build_artifacts/tinycss2_1666100256010/work
 toml @ file:///home/conda/feedstock_root/build_artifacts/toml_1604308577558/work
 tomli @ file:///home/conda/feedstock_root/build_artifacts/tomli_1644342247877/work
-torch==1.13.0
+torch==1.13.1
 torchvision==0.14.0
 tornado @ file:///D:/bld/tornado_1666788767305/work
 tqdm==4.65.0
