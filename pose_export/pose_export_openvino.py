@@ -136,6 +136,7 @@ class PoseEstimator:
 
 						# Apply the offset to all points of the skeleton
 						poses_3d += offset
+			poses_3d /= 100
 
 			for pose_3d in poses_3d:
 				frame_pose = {
@@ -171,30 +172,45 @@ class PoseEstimator:
 		with open(output_path, "w") as f:
 			json.dump(poses, f)
 
-	def smoothing(self, data : list, window_size : int):
-		"""
-			Smoothing the data using convolutional window
-			Args:
-				data (list): The data to be smoothed
-				window_size (int): The size of the window
-			Returns:
-				new_data (list): The smoothed data
-		"""
-		new_data = data.copy()
-		for name in self.bone_name:
-			x_array = np.zeros(len(data))
-			y_array = np.zeros(len(data))
-			z_array = np.zeros(len(data))
-			for i in range(len(data)):
-				x_array[i] = data[i]["pose"][name]["x"]
-				y_array[i] = data[i]["pose"][name]["y"]
-				z_array[i] = data[i]["pose"][name]["z"]
-			window = np.ones(window_size) / window_size
-			x_array = np.convolve(x_array, window, mode='same')
-			y_array = np.convolve(y_array, window, mode='same')
-			z_array = np.convolve(z_array, window, mode='same')
-			for i in range(len(data)):
-				new_data[i]["pose"][name]["x"] = x_array[i]
-				new_data[i]["pose"][name]["y"] = y_array[i]
-				new_data[i]["pose"][name]["z"] = z_array[i]
-		return new_data
+def smoothing(self, data: list, window_size: int):
+    """
+        Smoothing the data using convolutional window
+        Args:
+            data (list): The data to be smoothed
+            window_size (int): The size of the window
+        Returns:
+            new_data (list): The smoothed data
+    """
+    new_data = data[:]
+    for name in self.bone_name:
+        coords = np.array([[d["pose"][name]["x"], d["pose"][name]["y"], d["pose"][name]["z"]] for d in data])
+        window = np.ones(window_size) / window_size
+        smoothed_coords = np.apply_along_axis(lambda x: np.convolve(x, window, mode='same'), axis=0, arr=coords)
+        for i, d in enumerate(new_data):
+            d["pose"][name]["x"], d["pose"][name]["y"], d["pose"][name]["z"] = smoothed_coords[i]
+    return new_data
+
+
+def main():
+	"""
+	Main function for running pose estimation on a given video file using the Open Model Zoo.
+
+	Args:
+		None.
+
+	Returns:
+		None.
+
+	Raises:
+		None.
+	"""
+	base_model_dir = "model"
+	# model name as named in Open Model Zoo
+	model_name = "human-pose-estimation-3d-0001"
+	# selected precision (FP32, FP16)
+	precision = "FP32"
+	pose_estimator = PoseEstimator(base_model_dir, model_name, precision)
+	pose_estimator.estimate('0327.mp4', "poses.json")
+
+if __name__ == "__main__":
+	main()
