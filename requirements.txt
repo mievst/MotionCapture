@@ -94,7 +94,7 @@ PyYAML @ file:///D:/bld/pyyaml_1666772623553/work
 pyzmq @ file:///D:/bld/pyzmq_1679317071559/work
 qtconsole @ file:///home/conda/feedstock_root/build_artifacts/qtconsole-base_1680543490292/work
 QtPy @ file:///home/conda/feedstock_root/build_artifacts/qtpy_1680148448366/work
-requests==2.28.2
+requests==2.31.0
 rfc3339-validator @ file:///home/conda/feedstock_root/build_artifacts/rfc3339-validator_1638811747357/work
 rfc3986-validator @ file:///home/conda/feedstock_root/build_artifacts/rfc3986-validator_1598024191506/work
 scipy==1.8.1
