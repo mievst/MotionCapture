@@ -75,7 +75,7 @@ platformdirs @ file:///home/conda/feedstock_root/build_artifacts/platformdirs_16
 ply==3.11
 prometheus-client @ file:///home/conda/feedstock_root/build_artifacts/prometheus_client_1674535637125/work
 prompt-toolkit @ file:///home/conda/feedstock_root/build_artifacts/prompt-toolkit_1677600924538/work
-protobuf==3.20.1
+protobuf==3.20.2
 psutil @ file:///D:/bld/psutil_1667886042967/work
 pure-eval @ file:///home/conda/feedstock_root/build_artifacts/pure_eval_1642875951954/work
 pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1636257122734/work
