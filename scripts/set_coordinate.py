@@ -120,26 +120,32 @@ class RigHandler:
     def set_torso_data(self, pose : dict, l_hip_bone_name : str, r_hip_bone_name : str, neck_bone_name : str):
         l_hip = self.get_loc(pose, l_hip_bone_name)
         r_hip = self.get_loc(pose, r_hip_bone_name)
+        r_shoulder = self.get_loc(pose, "r_shoulder")
+        l_shoulder = self.get_loc(pose, "l_shoulder")
         neck = self.get_loc(pose, neck_bone_name)
         torso_bone = self.rig.pose.bones["torso"]
-
-        # Найдите центр между первой и второй точками.
         center = (l_hip + r_hip) / 2
 
-        x_vec = mathutils.Vector((-1, 0, 0))
-        y_vec = mathutils.Vector((0, 1, 0))
-        z_vec = mathutils.Vector((0, 0, 1))
+        # Вычисляем угол поворота по оси Z
+        angle_z = math.atan2(r_shoulder[1] - l_shoulder[1], r_shoulder[0] - l_shoulder[0])
 
-        bone_vec = center - r_hip
-        neck_vec = neck - center
+        # Вычисляем угол поворота по оси Y
+        angle_y = math.atan2(r_hip[2] - l_hip[2], r_hip[0] - l_hip[0])
 
-        x_angle = x_vec.angle(bone_vec)
-        y_angle = y_vec.cross(bone_vec).angle(neck_vec) #y_vec.angle(neck_vec) # Угол поворота вокруг оси Y всегда равен 0 для кости torso
-        z_angle = z_vec.angle(neck_vec)
+        # Вычисляем векторы между плечами и бедрами
+        shoulder_vector = r_shoulder - l_shoulder
+        hip_vector = r_hip - l_hip
+
+        # Нормализуем векторы
+        shoulder_vector.normalize()
+        hip_vector.normalize()
+
+        # Вычисляем угол поворота по оси X
+        angle_x = shoulder_vector.angle(hip_vector)
 
         # Вычисляем углы поворота кости torso
         torso_bone.rotation_mode = 'XYZ'
-        torso_bone.rotation_euler = mathutils.Euler((x_angle, y_angle, z_angle), 'XYZ')
+        torso_bone.rotation_euler = (angle_x, angle_y, angle_z)
         bpy.context.view_layer.update()
 
         self.set_bone_loc("torso", center)
