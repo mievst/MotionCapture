@@ -5,3 +5,7 @@ scripts/.vs*
 td-hm_hrnet-w48_8xb32-210e_coco-256x192-0e67c616_20220913.pth
 td-hm_hrnet-w48_8xb32-210e_coco-256x192.py
 /.vs
+pose_export/Танец - Made with Clipchamp.mp4
+pose_export/Тренировка (короткая) - Made with Clipchamp.mp4
+pose_export/Тренировка - Made with Clipchamp.mp4
+pose_export/poses_openvino.json

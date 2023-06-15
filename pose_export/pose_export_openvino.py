@@ -61,6 +61,47 @@ class PoseEstimator:
 		self.input_layer = compiled_model.input(0)
 		self.output_layers = list(compiled_model.outputs)
 
+		# directory where model will be downloaded
+		base_model_dir = "model"
+
+		# model name as named in Open Model Zoo
+		model_name = "person-detection-retail-0013"
+		# selected precision (FP32, FP16)
+		precision = "FP32"
+
+		BASE_MODEL_NAME = f"{base_model_dir}/intel/{model_name}/FP32/{model_name}"
+		model_path = Path(BASE_MODEL_NAME).with_suffix(".pth")
+		onnx_path = Path(BASE_MODEL_NAME).with_suffix(".onnx")
+
+		ir_model_path = f"model/intel/{model_name}/{precision}/{model_name}.xml"
+		model_weights_path = f"model/intel/{model_name}/{precision}/{model_name}.bin"
+
+		if not model_path.exists():
+			download_command = (
+				f"omz_downloader " f"--name {model_name} " f"--output_dir {base_model_dir}"
+			)
+			subprocess.run(download_command, shell=True)
+		if not onnx_path.exists():
+			convert_command = (
+				f"omz_converter "
+				f"--name {model_name} "
+				f"--precisions {precision} "
+				f"--download_dir {base_model_dir} "
+				f"--output_dir {base_model_dir}"
+			)
+			subprocess.run(convert_command, shell=True)
+
+		# read the network and corresponding weights from file
+		model_object_detection = ie_core.read_model(model=ir_model_path, weights=model_weights_path)
+		# load the model on the CPU (you can use GPU or MYRIAD as well)
+		compiled_model_object_detection = ie_core.compile_model(model=model_object_detection, device_name="CPU")
+		self.infer_request_object_detection = compiled_model_object_detection.create_infer_request()
+		self.input_tensor_name_object_detection = model_object_detection.inputs[0].get_any_name()
+
+		# get input and output names of nodes
+		self.input_layer_object_detection = compiled_model_object_detection.input(0)
+		self.output_layers_object_detection = list(compiled_model_object_detection.outputs)
+
 		self.body_edges = np.array(
 			[
 				[0, 1],
@@ -77,7 +118,7 @@ class PoseEstimator:
 		self.stride = 8
 		self.player = None
 		self.skeleton_set = None
-		self.bone_name = ["neck", "r_shoulder", "r_elbow", "r_wrist", "l_shoulder", "l_elbow", "l_wrist", "l_eye", "l_ear", "r_eye", "r_ear", "nose", "l_hip", "l_knee", "l_ankle", "r_hip", "r_knee", "r_ankle"]
+		self.bone_name = ["neck", "right_shoulder", "right_elbow", "right_wrist", "left_shoulder", "left_elbow", "left_wrist", "left_eye", "left_ear", "right_eye", "right_ear", "nose", "left_hip", "left_knee", "left_ankle", "right_hip", "right_knee", "right_ankle"]
 
 	def estimate(self, video_path : str, output_path : str, smoothing_window = 15) :
 		"""
@@ -103,6 +144,24 @@ class PoseEstimator:
 			input_image = input_image.reshape(self.input_layer.shape)  # reshape to input shape
 			# run inference
 			self.infer_request.infer({self.input_tensor_name: input_image})
+
+			# detection human
+			input_image_object_detection = cv2.resize(frame, (self.input_layer_object_detection.shape[3], self.input_layer_object_detection.shape[2]))
+			input_image_object_detection = input_image_object_detection.transpose((2, 0, 1))  # change data layout from HWC to CHW
+			input_image_object_detection = input_image_object_detection.reshape(self.input_layer_object_detection.shape)  # reshape to input shape
+			# run inference
+			detection_res = self.infer_request_object_detection.infer({self.input_tensor_name: input_image_object_detection})
+			boxes = self.infer_request_object_detection.get_tensor("detection_out").data[:][0][0]
+
+			x_min = y_min = x_max = y_max = 0
+			for box in boxes:
+				confidence = box[2]
+				if confidence > 0.5 and box[1] == 1:
+					x_min = int(box[3] * input_image_object_detection.shape[3])
+					y_min = int(box[4] * input_image_object_detection.shape[2])
+					x_max = int(box[5] * input_image_object_detection.shape[3])
+					y_max = int(box[6] * input_image_object_detection.shape[2])
+
 
 			# A set of three inference results is obtained
 			results = {
@@ -160,6 +219,12 @@ class PoseEstimator:
 						"r_hip": {"y":pose_3d[12][0], "z":pose_3d[12][1], "x":pose_3d[12][2]},
 						"r_knee": {"y":pose_3d[13][0], "z":pose_3d[13][1], "x":pose_3d[13][2]},
 						"r_ankle": {"y":pose_3d[14][0], "z":pose_3d[14][1], "x":pose_3d[14][2]}
+					},
+					"box": {
+						"x_min": x_min,
+						"y_min": y_min,
+						"x_max": x_max,
+						"y_max": y_max
 					}
 				}
 				poses.append(frame_pose)
@@ -173,22 +238,42 @@ class PoseEstimator:
 			json.dump(poses, f)
 
 def smoothing(self, data: list, window_size: int):
-    """
-        Smoothing the data using convolutional window
-        Args:
-            data (list): The data to be smoothed
-            window_size (int): The size of the window
-        Returns:
-            new_data (list): The smoothed data
-    """
-    new_data = data[:]
-    for name in self.bone_name:
-        coords = np.array([[d["pose"][name]["x"], d["pose"][name]["y"], d["pose"][name]["z"]] for d in data])
-        window = np.ones(window_size) / window_size
-        smoothed_coords = np.apply_along_axis(lambda x: np.convolve(x, window, mode='same'), axis=0, arr=coords)
-        for i, d in enumerate(new_data):
-            d["pose"][name]["x"], d["pose"][name]["y"], d["pose"][name]["z"] = smoothed_coords[i]
-    return new_data
+	"""
++    Applies smoothing to the input data for each bone name using a moving average filter.
++
++    :param data: A list of dictionaries representing the data to be smoothed.
++    :type data: list
++    :param window_size: The size of the window to use for the moving average filter.
++    :type window_size: int
++    :return: A new list of dictionaries with smoothed data for each bone name.
++    :rtype: list
++    """
+	new_data = data.copy()
+	for name in self.bone_name:
+		x_array = np.zeros(len(data) + 2 * window_size)
+		y_array = np.zeros(len(data) + 2 * window_size)
+		z_array = np.zeros(len(data) + 2 * window_size)
+		for i in range(len(data)):
+			x_array[i + window_size] = data[i]["pose"][name]["x"]
+			y_array[i + window_size] = data[i]["pose"][name]["y"]
+			z_array[i + window_size] = data[i]["pose"][name]["z"]
+		# Добавить значения в начало и конец массивов
+		for i in range(window_size):
+			x_array[i] = x_array[window_size]
+			y_array[i] = y_array[window_size]
+			z_array[i] = z_array[window_size]
+			x_array[-i-1] = x_array[-window_size-1]
+			y_array[-i-1] = y_array[-window_size-1]
+			z_array[-i-1] = z_array[-window_size-1]
+		window = np.ones(window_size) / window_size
+		x_array = np.convolve(x_array, window, mode='valid')
+		y_array = np.convolve(y_array, window, mode='valid')
+		z_array = np.convolve(z_array, window, mode='valid')
+		for i in range(len(data)):
+			new_data[i]["pose"][name]["x"] = x_array[i]
+			new_data[i]["pose"][name]["y"] = y_array[i]
+			new_data[i]["pose"][name]["z"] = z_array[i]
+	return new_data
 
 
 def main():
