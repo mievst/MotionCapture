@@ -59,7 +59,7 @@ networkx==2.8.8
 notebook @ file:///home/conda/feedstock_root/build_artifacts/notebook_1680870634737/work
 notebook_shim @ file:///home/conda/feedstock_root/build_artifacts/notebook-shim_1667478401171/work
 numpy @ file:///D:/bld/numpy_1675642778044/work
-onnx==1.12.0
+onnx==1.13.0
 opencv-python==4.7.0.72
 openvino==2022.3.0
 openvino-dev==2022.3.0
@@ -75,7 +75,7 @@ platformdirs @ file:///home/conda/feedstock_root/build_artifacts/platformdirs_16
 ply==3.11
 prometheus-client @ file:///home/conda/feedstock_root/build_artifacts/prometheus_client_1674535637125/work
 prompt-toolkit @ file:///home/conda/feedstock_root/build_artifacts/prompt-toolkit_1677600924538/work
-protobuf==3.20.1
+protobuf==3.20.2
 psutil @ file:///D:/bld/psutil_1667886042967/work
 pure-eval @ file:///home/conda/feedstock_root/build_artifacts/pure_eval_1642875951954/work
 pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1636257122734/work
@@ -94,7 +94,7 @@ PyYAML @ file:///D:/bld/pyyaml_1666772623553/work
 pyzmq @ file:///D:/bld/pyzmq_1679317071559/work
 qtconsole @ file:///home/conda/feedstock_root/build_artifacts/qtconsole-base_1680543490292/work
 QtPy @ file:///home/conda/feedstock_root/build_artifacts/qtpy_1680148448366/work
-requests==2.28.2
+requests==2.31.0
 rfc3339-validator @ file:///home/conda/feedstock_root/build_artifacts/rfc3339-validator_1638811747357/work
 rfc3986-validator @ file:///home/conda/feedstock_root/build_artifacts/rfc3986-validator_1598024191506/work
 scipy==1.8.1
@@ -109,7 +109,7 @@ texttable==1.6.7
 tinycss2 @ file:///home/conda/feedstock_root/build_artifacts/tinycss2_1666100256010/work
 toml @ file:///home/conda/feedstock_root/build_artifacts/toml_1604308577558/work
 tomli @ file:///home/conda/feedstock_root/build_artifacts/tomli_1644342247877/work
-torch==1.13.0
+torch==1.13.1
 torchvision==0.14.0
 tornado @ file:///D:/bld/tornado_1666788767305/work
 tqdm==4.65.0
